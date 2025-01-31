@@ -123,6 +123,22 @@ pip install pandas numpy plotly
 
 ---
 
+**Examples of Output charts**
+
+- ## Examples of Output charts
+
+## LLY
+
+![Chart 1](/src/screenshots/LLY-results.png)
+
+## VRTX
+
+![Chart 2](src/screenshots/VRTX-results.png)
+
+## ZTS
+
+![Chart 3](src/screenshots/ZTS-results.png)
+
 ## Execution
 
 To run the script:
@@ -153,15 +169,7 @@ entry_points = evaluate_strategy(data)
 
 - This script is designed for educational purposes. Modify the parameters (e.g., EMA, SMA periods, PNL targets) to suit specific trading strategies.
 - Ensure that the CSV files have columns: `Date`, `Open`, `High`, `Low`, `Close`, and `Adj Close`.
-
-## Code Review Items:
-
-- Currently I have split out the charting and pnl evaluation into different tests.
-  - bull_back_test_1.py: charting implmentation
-  - bull_backtest_4.py: pnl tracking and exporting csv.
-- Current questions and condisterations:
-  - I need conformation that the logic I am employing or evaluating PNL (def evaluate_strategy) based on the comments provided
-  - Currently the struacutre requires 14 days or 50% profit. I am trying to figure out how employe a better logic structure.
+- Futre results are not indicative of past performance.
 
 ```
 
