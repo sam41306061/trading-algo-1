@@ -1,6 +1,6 @@
 # Stock Trading Strategy Script: Bullish entry
 
-This script is a Python-based tool for analyzing stock market data and identifying trading opportunities using a bullish strategy. The script uses various technical indicators such as Exponential Moving Averages (EMA), Simple Moving Averages (SMA), Relative Strength Index (RSI), and Stochastics to evaluate stock performance and suggest potential entry points.
+This Python script is designed to automate the identification of high-probability buying opportunities in the stock market. It leverages technical indicators such as Exponential Moving Averages (EMA), Simple Moving Averages (SMA), Relative Strength Index (RSI), and Stochastics to detect upward trends. By analyzing market inefficiencies—imbalances between buyers and sellers—the script pinpoints potential entry points for trades. This approach is part of a broader trend-following strategy aimed at streamlining what is traditionally a discretionary trading process. In the long term, this script aims to provide a trader with a systematic trading strategy based on an automated evaluation of current stocks and indices. Because of my background in Economics and Finance, I am passionate about combining my interests in these fields with my coding skills to learn as a programmer and investor. 
 
 ## Table of Contents
 
