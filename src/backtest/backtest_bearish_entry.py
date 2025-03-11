@@ -4,18 +4,10 @@ import numpy as np
 from plotly.subplots import make_subplots
 import plotly.graph_objects as go
 
-### OVERVIEW ####
-# it appears that when you perform an inverse scan of a bullish strategy, You can identify a clustering event 
-# that seems to show severl days of what would be a break out process. It is a clearly showing that a trend 
-# appears to show up after several days of entries that cleary identify a break out to either downside or upside,
-# need to preform some backtesting of entries as a means to establish some creditability to this result. 
-
 
 # File location
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 ROOT_DATA_DIR = os.path.join(BASE_DIR, '../../', 'csv')
-
-
 #sector
 sector = 'HealthCare'
 tickers = [ "LLY", "UNH", "JNJ", "ABBV", "MRK", "ABT", "TMO", "ISRG", "AMGN", "DHR",
@@ -39,8 +31,8 @@ def get_stock_data_csv(tickers):
         except Exception as e:
             print(f"Error reading {ticker}.csv, Error:{e}")
             print(f"File not found: {csv_path}")
-    
-    return data
+
+        return data
 
 
 def calculate_ema(data, ema_periods):
@@ -52,7 +44,6 @@ def calculate_ema(data, ema_periods):
         df[f'EMA_{period}'] = df['Close'].ewm(span=period, adjust=False).mean()
     return df
 
-
 def calculate_sma(data, sma_periods):
     """
     Function to Calculate Simple Moving Averages
@@ -61,6 +52,7 @@ def calculate_sma(data, sma_periods):
     for period in sma_periods:
         df[f'SMA_{period}'] = df['Close'].rolling(window=period).mean()
     return df
+
 
 def calculate_rsi(data, rsi_period=2):
     """
@@ -104,9 +96,9 @@ def calculate_stochastics(data, k_period=8, d_period=3):
     d = k.rolling(window=d_period).mean()
     return pd.DataFrame({'%K': k, '%D': d})
 
-def bullish_strategy(data):
+def bearish_strategy(data):
     """
-    Function to apply the bullish strategy
+    Function to apply the bearish strategy
     - EMA: 8, 21, 34
     - SMA: 100, 200
     - RSI: 2 day period
@@ -127,33 +119,24 @@ def bullish_strategy(data):
         bullish_stochas = calculate_stochastics(df)
 
         ema_sma_trend_mask = (
-            (df['EMA_8'] > df['EMA_21']) &
-            (df['EMA_21'] > df['EMA_34']) &
-            (df['EMA_34'] > df['SMA_50']) &
-            (df['SMA_50'] > df['SMA_100']) &
-            (df['SMA_100'] > df['SMA_200'])
+            (df['EMA_8'] < df['EMA_21']) &
+            (df['EMA_21'] < df['EMA_34']) &
+            (df['EMA_34'] < df['SMA_50']) &
+            (df['SMA_50'] < df['SMA_100']) &
+            (df['SMA_100'] < df['SMA_200'])
         )
-        retracement_stochas_mask = (bullish_stochas['%K'] <= 40) & (bullish_stochas['%D'] <= 40)
-        retracement_rsi_mask = bullish_rsi <= 10
+        retracement_stochas_mask = (bullish_stochas['%K'] >= 40) & (bullish_stochas['%D'] >= 40)
+        retracement_rsi_mask = bullish_rsi >= 90
         pullback_entry_mask  = (
-            (df['Adj Close'] <= df['EMA_21']) or
-            (df['Adj Close'] <= df['EMA_34']) 
+            (df['Adj Close'] >= df['EMA_21']) or
+            (df['Adj Close'] >= df['EMA_8']) 
         )
-        low_bar_mask = (
-            (df['Adj Close'] >= df['Close'].shift(-1))   # Close is higher than the previous days close
+        high_bar_mask = (
+            (df['Adj Close'] <= df['Close'].shift(-1))   # High is less than preivous days close
         )
-
-        single_mask =  ema_sma_trend_mask & retracement_stochas_mask & retracement_rsi_mask & pullback_entry_mask & low_bar_mask
+        
+        single_mask =  ema_sma_trend_mask & retracement_stochas_mask & retracement_rsi_mask & high_bar_mask & pullback_entry_mask
          # Need to research a weighted structure algo in order to determine an optimal entry point but not all requierments are met
-            # 1 in importance: 
-                #EMA's stacked
-                #Stochastics level met
-            #2 in importance:
-                #RSI
-            #3 in importance:
-                #pullback 
-                # low bar valuation
-
         df['Entry Point'] = np.where(single_mask, 1, 0)
         df = df.dropna()
         data[ticker] = df
@@ -173,11 +156,9 @@ def evaluate_strategy(data):
 
     for ticker in data:
         df = data[ticker]
-        print(f"processing ticker:{ticker}")
         
         # Find entry points
         entries = df[df['Entry Point'] == 1].copy()
-        print(f"Found {len(entries)} entry points for {ticker}")
         
         # Calculate PNLs
         entries['PNL'] = np.nan
@@ -192,16 +173,23 @@ def evaluate_strategy(data):
         for i, row in entries.iterrows():
             start_price = row['Adj Close']
             start_index = df.index.get_loc(i)
-            print(f"Entry {i}: Start price: {start_price}, Start index: {start_index}")
-
+            
             # Find the best PNL in a 14 day window
             max_pnl = -999 #ludicrously low so it always gets overwritten
             stop_loss = None
-    
+
+            # Price has retraced back to the 21 EMA or 34 EMA to consider entry
+            # if start_price == df['EMA_8'].iloc[start_index]:
+            #     entries.at[i,'Start Price'] = start_price
+            # elif start_price == df['EMA_21'].iloc[start_index]:
+            #     entries.at[i,'Start Price'] = start_price
+            # else: 
+            #     continue 
+            
 
              # check if there is a trade being identified at the end of the dataset
             if start_index + max_hold_days >= len(df):
-                max_hold_days = len(df) - start_index - 1
+                max_hold_days = len(df) - start_index - 1 
 
             
             for end_index in range(start_index + 1, start_index + max_hold_days + 1):
@@ -363,36 +351,23 @@ def plot_ema_sma_strategy(data, ema_periods, sma_periods, ticker):
     
     fig.show()
 
+
+
 if __name__ == "__main__":
-    ema_periods = [8, 21, 34]
-    sma_periods = [50,100, 200]
-    data = get_stock_data_csv(tickers)
-    data = bullish_strategy(data)
-    entry_points,inital_balance = evaluate_strategy(data)
-
-
-
- # Plot strategy for each ticker
-    for ticker in tickers:
-        if ticker in data:
+  ema_periods = [8, 21, 34]
+  sma_periods = [50,100, 200]
+  data = get_stock_data_csv(tickers)
+  data = bearish_strategy(data)
+  entry_points,inital_balance = evaluate_strategy(data)
+  
+  
+# Plot strategy for each ticker
+for ticker in tickers:
+    if ticker in data:
             df = data[ticker]
-            if df['Entry Point'].sum() > 2:
+            if df['Entry Point'].sum() > 0:
                 plot_ema_sma_strategy(data, ema_periods, sma_periods, ticker)
             else:
                 print(f"Skipping plot for {ticker} as no valid entry points were found.")
-        else:
-            print(f"{ticker} did not have any valid data.")
-
-# Export results for each ticker
-
-    # for ticker, ticker_entry_points in entry_points:
-    #     # testing
-    #     print(f"\nWriting CSV for {ticker}:")
-    #     print(f"Number of rows: {len(ticker_entry_points)}")
-    #     print(f"Number of entry points: {ticker_entry_points['Entry Point'].sum()}")
-
-    #     if not ticker_entry_points.empty:
-    #         ticker_entry_points.to_csv(f'{ticker}_results.csv', index=False)
-    #         print(f"Results exported for {ticker}")
-    #     else:
-    #         print(f"No valid entry points found for {ticker}")
+    else:
+        print(f"{ticker} did not have any valid data.")
