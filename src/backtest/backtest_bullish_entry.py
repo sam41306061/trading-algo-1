@@ -136,24 +136,12 @@ def bullish_strategy(data):
         retracement_stochas_mask = (bullish_stochas['%K'] <= 40) & (bullish_stochas['%D'] <= 40)
         retracement_rsi_mask = bullish_rsi <= 10
         pullback_entry_mask  = (
-            (df['Adj Close'] <= df['EMA_21']) or
-            (df['Adj Close'] <= df['EMA_34']) 
+            (df['Adj Close'] <= df['EMA_21'])
         )
-        low_bar_mask = (
-            (df['Adj Close'] >= df['Close'].shift(-1))   # Close is higher than the previous days close
-        )
+        low_bar_mask = df['Adj Close'] > df['Low']
 
-        single_mask =  ema_sma_trend_mask & retracement_stochas_mask & retracement_rsi_mask & pullback_entry_mask & low_bar_mask
+        single_mask =  ema_sma_trend_mask & retracement_stochas_mask & retracement_rsi_mask & pullback_entry_mask  & low_bar_mask
          # Need to research a weighted structure algo in order to determine an optimal entry point but not all requierments are met
-            # 1 in importance: 
-                #EMA's stacked
-                #Stochastics level met
-            #2 in importance:
-                #RSI
-            #3 in importance:
-                #pullback 
-                # low bar valuation
-
         df['Entry Point'] = np.where(single_mask, 1, 0)
         df = df.dropna()
         data[ticker] = df
@@ -376,7 +364,7 @@ if __name__ == "__main__":
     for ticker in tickers:
         if ticker in data:
             df = data[ticker]
-            if df['Entry Point'].sum() > 2:
+            if df['Entry Point'].sum() > 6:
                 plot_ema_sma_strategy(data, ema_periods, sma_periods, ticker)
             else:
                 print(f"Skipping plot for {ticker} as no valid entry points were found.")

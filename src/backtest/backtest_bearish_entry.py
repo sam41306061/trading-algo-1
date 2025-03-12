@@ -8,6 +8,7 @@ import plotly.graph_objects as go
 # File location
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 ROOT_DATA_DIR = os.path.join(BASE_DIR, '../../', 'csv')
+
 #sector
 sector = 'HealthCare'
 tickers = [ "LLY", "UNH", "JNJ", "ABBV", "MRK", "ABT", "TMO", "ISRG", "AMGN", "DHR",
@@ -125,17 +126,13 @@ def bearish_strategy(data):
             (df['SMA_50'] < df['SMA_100']) &
             (df['SMA_100'] < df['SMA_200'])
         )
-        retracement_stochas_mask = (bullish_stochas['%K'] >= 40) & (bullish_stochas['%D'] >= 40)
+        retracement_stochas_mask = (bullish_stochas['%K'] >= 60) & (bullish_stochas['%D'] >= 60)
         retracement_rsi_mask = bullish_rsi >= 90
-        pullback_entry_mask  = (
-            (df['Adj Close'] >= df['EMA_21']) or
-            (df['Adj Close'] >= df['EMA_8']) 
-        )
         high_bar_mask = (
             (df['Adj Close'] <= df['Close'].shift(-1))   # High is less than preivous days close
         )
         
-        single_mask =  ema_sma_trend_mask & retracement_stochas_mask & retracement_rsi_mask & high_bar_mask & pullback_entry_mask
+        single_mask =  ema_sma_trend_mask & retracement_stochas_mask & retracement_rsi_mask  &  high_bar_mask
          # Need to research a weighted structure algo in order to determine an optimal entry point but not all requierments are met
         df['Entry Point'] = np.where(single_mask, 1, 0)
         df = df.dropna()
@@ -179,12 +176,12 @@ def evaluate_strategy(data):
             stop_loss = None
 
             # Price has retraced back to the 21 EMA or 34 EMA to consider entry
-            # if start_price == df['EMA_8'].iloc[start_index]:
-            #     entries.at[i,'Start Price'] = start_price
-            # elif start_price == df['EMA_21'].iloc[start_index]:
-            #     entries.at[i,'Start Price'] = start_price
-            # else: 
-            #     continue 
+            if start_price == df['EMA_8'].iloc[start_index]:
+                entries.at[i,'Start Price'] = start_price
+            elif start_price == df['EMA_21'].iloc[start_index]:
+                entries.at[i,'Start Price'] = start_price
+            else: 
+                continue 
             
 
              # check if there is a trade being identified at the end of the dataset
@@ -365,7 +362,7 @@ if __name__ == "__main__":
 for ticker in tickers:
     if ticker in data:
             df = data[ticker]
-            if df['Entry Point'].sum() > 0:
+            if df['Entry Point'].sum() > 1:
                 plot_ema_sma_strategy(data, ema_periods, sma_periods, ticker)
             else:
                 print(f"Skipping plot for {ticker} as no valid entry points were found.")
